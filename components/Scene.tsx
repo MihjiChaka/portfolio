@@ -12,48 +12,39 @@ interface SceneProps {
 
 const Scene: React.FC<SceneProps> = ({ theme }) => {
   const scroll = useScroll();
-  const { viewport, size } = useThree();
+  const { viewport } = useThree();
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
   const meshRef = useRef<THREE.Mesh>(null);
 
   const isDark = theme === 'dark';
-  const aspect = size.width / size.height;
-  const isPortrait = aspect < 1;
-  const isLargeDesktop = size.width > 2000;
+  const isMobile = viewport.width < 10;
   
-  // Calculate responsive scale for the central mesh
-  const baseScale = isPortrait ? 0.65 : isLargeDesktop ? 1.4 : 1.1;
-  const responsiveScale = (viewport.width / 18) * baseScale;
+  // Calculate dynamic scale based on viewport width
+  const responsiveScale = Math.min(Math.max(viewport.width / 15, 0.5), 1.2);
 
   useFrame((state) => {
     const scrollOffset = scroll.offset; 
     
     if (cameraRef.current) {
-      // Dynamic camera travel based on screen orientation
-      const startZ = isPortrait ? 28 : 18;
-      const targetZ = THREE.MathUtils.lerp(startZ, -135, scrollOffset);
+      // Adjusted lerp for ultra-smooth travel, travel further on mobile to compensate for width
+      const targetZ = THREE.MathUtils.lerp(isMobile ? 22 : 18, -120, scrollOffset);
       cameraRef.current.position.z = THREE.MathUtils.lerp(cameraRef.current.position.z, targetZ, 0.05);
       
-      // Widen FOV on portrait to keep content visible
-      const baseFov = isPortrait ? 85 : 60;
-      cameraRef.current.fov = THREE.MathUtils.lerp(baseFov, 95, scrollOffset);
+      cameraRef.current.fov = THREE.MathUtils.lerp(isMobile ? 75 : 65, 95, scrollOffset);
       cameraRef.current.updateProjectionMatrix();
 
-      // Mouse influence
-      const mouseFactor = isPortrait ? 0.1 : 0.25;
       const mouseX = (state.mouse.x * state.viewport.width) / 20;
       const mouseY = (state.mouse.y * state.viewport.height) / 20;
-      cameraRef.current.position.x = THREE.MathUtils.lerp(cameraRef.current.position.x, mouseX * mouseFactor, 0.03);
-      cameraRef.current.position.y = THREE.MathUtils.lerp(cameraRef.current.position.y, mouseY * mouseFactor, 0.03);
-      
-      cameraRef.current.lookAt(0, 0, cameraRef.current.position.z - 45);
+      cameraRef.current.position.x = THREE.MathUtils.lerp(cameraRef.current.position.x, mouseX * 0.3, 0.03);
+      cameraRef.current.position.y = THREE.MathUtils.lerp(cameraRef.current.position.y, mouseY * 0.3, 0.03);
+      cameraRef.current.lookAt(0, 0, cameraRef.current.position.z - 30);
     }
 
     if (meshRef.current) {
       meshRef.current.rotation.y += 0.002;
       meshRef.current.rotation.x += 0.001;
-      
-      const s = responsiveScale * (1 + scrollOffset * 0.45);
+      // Gently scale with scroll
+      const s = responsiveScale * (1 + scrollOffset * 0.5);
       meshRef.current.scale.set(s, s, s);
     }
   });
@@ -70,51 +61,51 @@ const Scene: React.FC<SceneProps> = ({ theme }) => {
       />
 
       <group>
-        <Stars count={isDark ? 6000 : 1500} color={isDark ? "#ffffff" : "#3b82f6"} />
+        <Stars count={isDark ? 5000 : 1000} color={isDark ? "#ffffff" : "#4488ff"} />
         
         <Grid 
           infiniteGrid 
-          fadeDistance={isPortrait ? 50 : 120} 
-          sectionColor={isDark ? "#1a1a1a" : "#cbd5e1"} 
-          cellColor={isDark ? "#0a0a0a" : "#e2e8f0"} 
-          sectionSize={15}
-          cellSize={5}
-          position={[0, -15, 0]}
+          fadeDistance={isMobile ? 50 : 80} 
+          sectionColor={isDark ? "#222" : "#ccc"} 
+          cellColor={isDark ? "#111" : "#eee"} 
+          sectionSize={10}
+          cellSize={2}
+          position={[0, -10, 0]}
         />
 
-        <ambientLight intensity={isDark ? 0.15 : 0.6} />
-        <spotLight position={[30, 40, 20]} angle={0.3} penumbra={1} intensity={isDark ? 4 : 1.5} color="#3b82f6" />
-        <pointLight position={[-30, -20, -20]} intensity={isDark ? 3 : 1} color={isDark ? "#ec4899" : "#3b82f6"} />
+        <ambientLight intensity={isDark ? 0.15 : 0.5} />
+        <spotLight position={[20, 20, 10]} angle={0.2} penumbra={1} intensity={isDark ? 3 : 1} color="#4488ff" />
+        <pointLight position={[-20, -10, -20]} intensity={isDark ? 2 : 0.5} color={isDark ? "#ff4488" : "#4488ff"} />
 
         {/* Central Geometric Icon */}
-        <Float speed={1.8} rotationIntensity={0.8} floatIntensity={1}>
+        <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.5}>
           <mesh ref={meshRef} position={[0, 0, -10]}>
-            <icosahedronGeometry args={[6, 4]} />
+            <icosahedronGeometry args={[6, 3]} />
             <meshStandardMaterial 
               color={isDark ? "#050505" : "#ffffff"} 
-              emissive={isDark ? "#1e40af" : "#ffffff"} 
-              emissiveIntensity={isDark ? 1.2 : 0.1}
+              emissive={isDark ? "#111111" : "#ffffff"} 
+              emissiveIntensity={isDark ? 1 : 0.1}
               wireframe 
               transparent 
-              opacity={isDark ? 0.6 : 0.8}
+              opacity={isDark ? 0.4 : 0.6}
             />
           </mesh>
         </Float>
 
         {/* Dynamic Nodes */}
-        {[...Array(isPortrait ? 8 : 18)].map((_, i) => (
-          <Float key={i} speed={0.4 + Math.random()} rotationIntensity={2} floatIntensity={1.5}>
+        {[...Array(isMobile ? 8 : 12)].map((_, i) => (
+          <Float key={i} speed={0.5 + Math.random()} rotationIntensity={2} floatIntensity={1}>
             <mesh 
               position={[
-                (Math.random() - 0.5) * (isPortrait ? 30 : 80),
-                (Math.random() - 0.5) * (isPortrait ? 40 : 80),
-                -i * 25 - 40
+                (Math.random() - 0.5) * (isMobile ? 30 : 50),
+                (Math.random() - 0.5) * (isMobile ? 30 : 50),
+                -i * 25 - 20
               ]}
-              scale={responsiveScale * 0.35}
+              scale={responsiveScale}
             >
-              <dodecahedronGeometry args={[2, 0]} />
+              <dodecahedronGeometry args={[1.5, 0]} />
               <meshStandardMaterial 
-                color={isDark ? (i % 2 === 0 ? "#3b82f6" : "#ec4899") : "#64748b"} 
+                color={isDark ? (i % 2 === 0 ? "#4488ff" : "#ff4488") : "#222"} 
                 wireframe 
                 transparent
                 opacity={isDark ? 0.15 : 0.3}
@@ -124,18 +115,18 @@ const Scene: React.FC<SceneProps> = ({ theme }) => {
         ))}
       </group>
 
-      <EffectComposer multisampling={isLargeDesktop ? 8 : 4}>
+      <EffectComposer multisampling={8}>
         <Bloom 
-          luminanceThreshold={isDark ? 0.1 : 0.9} 
+          luminanceThreshold={isDark ? 0.05 : 0.8} 
           mipmapBlur 
-          intensity={isDark ? 1.4 : 0.3} 
-          radius={0.6}
+          intensity={isDark ? 1.0 : 0.3} 
+          radius={0.4}
         />
         <ChromaticAberration 
-          offset={new THREE.Vector2(0.001, 0.001)} 
+          offset={new THREE.Vector2(0.0006, 0.0006)} 
         />
-        <Noise opacity={isDark ? 0.12 : 0.05} />
-        <Vignette eskil={false} offset={0.2} darkness={isDark ? 1.2 : 0.6} />
+        <Noise opacity={isDark ? 0.08 : 0.03} />
+        <Vignette eskil={false} offset={0.1} darkness={isDark ? 1.05 : 0.6} />
       </EffectComposer>
     </>
   );
