@@ -1,0 +1,5 @@
+{
+  "name": "Cosmic Portfolio Boilerplate",
+  "description": "A high-end Three.js portfolio template with GSAP scroll animations, post-processing (Bloom, Chromatic Aberration), and cinematic design.",
+  "requestFramePermissions": []
+}
